@@ -1,0 +1,26 @@
+{
+  "name": "natours",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyrilNtando/natours.git"
+  },
+  "author": "ntando",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CyrilNtando/natours/issues"
+  },
+  "homepage": "https://github.com/CyrilNtando/natours#readme",
+  "dependencies": {
+    "dotenv": "^8.0.0",
+    "express": "^4.17.1",
+    "mongoose": "^5.6.9",
+    "morgan": "^1.9.1",
+    "nodemon": "^1.19.1"
+  }
+}
