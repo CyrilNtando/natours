@@ -9,4 +9,6 @@ mongoose
   })
   .then(() => console.log('DB connection successful'));
 
+module.exports.User = require('./User');
 module.exports.Tour = require('./Tour');
+module.exports.Review = require('./Review');

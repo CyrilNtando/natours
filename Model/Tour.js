@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 const validator = require('validator');
+const User = require('./User');
 const tourSchema = new mongoose.Schema(
   {
     name: {
@@ -34,7 +35,8 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       default: 4.5,
       min: [1, 'Rating must be above 1.0'],
-      max: [5, 'Rating must be below 5.0']
+      max: [5, 'Rating must be below 5.0'],
+      set: val => Math.round(val * 10) / 10 //run each time the is a new value
     },
     ratingsQuantity: {
       type: Number,
@@ -78,19 +80,64 @@ const tourSchema = new mongoose.Schema(
     secretTour: {
       type: Boolean,
       default: false
-    }
+    },
+    startLocation: {
+      //GeoJSON
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point']
+      },
+      coordinates: [Number],
+      address: String,
+      description: String
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point']
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number
+      }
+    ],
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User'
+      }
+    ]
   },
   {
-    //define in schema that we want virtual properties in onject
+    //define in schema that we want virtual properties in object
     toJSON: { virtuals: true }, //if data is outputted  as json
     toObject: { virtuals: true } //if data is outputted  as object
   }
 );
+
+//using indexes to improve search in document
+//tourSchema.index({ price: 1 });
+//compound index
+tourSchema.index({ price: 1, ratingsAverage: -1 });
+tourSchema.index({ slug: 1 });
+tourSchema.index({ startLocation: '2dsphere' });
+
 //not stored in the database or not persistent and cannot be used in a query
 tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7;
 });
-
+// Virtual populate
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour',
+  localField: '_id'
+});
+// tourSchema.set('toObject', { virtuals: true });
+// tourSchema.set('toJSON', { virtuals: true });
 //DOCUMENT MIDDLEWARE
 /** *Document Middleware runs before .save() and .create() command only**/
 tourSchema.pre('save', function(next) {
@@ -108,22 +155,28 @@ tourSchema.pre('save', function(next) {
 //secretTour no equals to true
 tourSchema.pre(/^find/, function(next) {
   this.find({ secretTour: { $ne: true } });
-  this.start = Date.now();
   next();
 });
 
+tourSchema.pre(/^find/, function(next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt'
+  });
+  next();
+});
 /*** run after a find query is execcuted*/
 tourSchema.post(/^find/, function(doc, next) {
-  console.log(`Query took ${Date.now() - this.start} milliseconds`);
   //console.log(doc);
   next();
 });
 
 //AGGREGATION MIDDLEWARE
-tourSchema.pre('aggregate', function(next) {
-  //add element/stage at the beginning of the array
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-  next();
-});
+// tourSchema.pre('aggregate', function(next) {
+//   //add element/stage at the beginning of the array
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//   next();
+// });
+
 const Tour = mongoose.model('Tour', tourSchema);
 module.exports = Tour;
